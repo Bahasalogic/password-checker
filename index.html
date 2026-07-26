@@ -20,7 +20,7 @@
 <meta name="twitter:description" content="Cek seberapa kuat password kamu secara instan, langsung di browser.">
 
 <!-- Favicon (inline SVG, tidak perlu file terpisah) -->
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔒</text></svg>">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%94%92%3C/text%3E%3C/svg%3E">
 
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -155,6 +155,133 @@
   .footer-credit a:hover {
     text-decoration: underline;
   }
+
+  .breach-box {
+    margin-top: 14px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    display: none;
+    align-items: center;
+    gap: 8px;
+  }
+  .breach-box.show { display: flex; }
+  .breach-box.checking {
+    background: #f1f5f9;
+    color: #64748b;
+  }
+  .breach-box.safe {
+    background: #dcfce7;
+    color: #15803d;
+  }
+  .breach-box.leaked {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+  .breach-box.error {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 24px 0;
+    color: #cbd5e1;
+    font-size: 0.75rem;
+  }
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e2e8f0;
+  }
+
+  .gen-section h2 {
+    font-size: 1rem;
+    color: #0f172a;
+    margin-bottom: 14px;
+  }
+  .gen-output-wrap {
+    position: relative;
+    margin-bottom: 14px;
+  }
+  #genOutput {
+    width: 100%;
+    padding: 14px 46px 14px 14px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-family: 'Consolas', monospace;
+    background: #f8fafc;
+    color: #0f172a;
+    letter-spacing: 0.5px;
+  }
+  .copy-btn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #6366f1;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 10px;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+  .copy-btn:hover { background: #4f46e5; }
+
+  .gen-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .length-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: #334155;
+  }
+  .length-row input[type="range"] {
+    flex: 1;
+    margin: 0 12px;
+    accent-color: #6366f1;
+  }
+  .gen-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .gen-option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: #334155;
+    background: #f1f5f9;
+    padding: 6px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .gen-option input { accent-color: #6366f1; }
+
+  .gen-btn {
+    width: 100%;
+    padding: 12px;
+    background: #0f172a;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .gen-btn:hover { background: #1e293b; }
 </style>
 </head>
 <body>
@@ -186,7 +313,34 @@
     <div class="criteria-item" id="c-common"><span class="icon">✓</span> Bukan password umum</div>
   </div>
 
-  <p class="note">Estimasi waktu bobol dihitung secara kasar berdasarkan kombinasi karakter yang digunakan dan asumsi kecepatan tebak offline modern. Ini hanya perkiraan, bukan jaminan keamanan.</p>
+  <div class="breach-box" id="breachBox"></div>
+
+  <p class="note">Estimasi waktu bobol dihitung secara kasar berdasarkan kombinasi karakter yang digunakan dan asumsi kecepatan tebak offline modern. Ini hanya perkiraan, bukan jaminan keamanan. Cek kebocoran menggunakan API Have I Been Pwned dengan metode k-anonymity — password lengkap tidak pernah dikirim ke server mana pun.</p>
+
+  <div class="divider">GENERATOR PASSWORD</div>
+
+  <div class="gen-section">
+    <div class="gen-output-wrap">
+      <input type="text" id="genOutput" readonly placeholder="Klik 'Buat Password' di bawah">
+      <button class="copy-btn" id="copyBtn" type="button" title="Salin">📋</button>
+    </div>
+
+    <div class="gen-controls">
+      <div class="length-row">
+        <span>Panjang</span>
+        <input type="range" id="genLength" min="6" max="32" value="16">
+        <span id="genLengthValue">16</span>
+      </div>
+      <div class="gen-options">
+        <label class="gen-option"><input type="checkbox" id="optUpper" checked> Huruf Besar</label>
+        <label class="gen-option"><input type="checkbox" id="optLower" checked> Huruf Kecil</label>
+        <label class="gen-option"><input type="checkbox" id="optNumber" checked> Angka</label>
+        <label class="gen-option"><input type="checkbox" id="optSymbol" checked> Simbol</label>
+      </div>
+    </div>
+
+    <button class="gen-btn" id="genBtn" type="button">🎲 Buat Password</button>
+  </div>
 
   <div class="footer-credit">
     Dibuat oleh <a href="https://github.com/bahasalogic" target="_blank" rel="noopener">@bahasalogic</a>
@@ -306,8 +460,143 @@ function evaluatePassword(pwd) {
   crackTime.textContent = 'Waktu bobol: ' + formatCrackTime(estSeconds);
 }
 
-pwdInput.addEventListener('input', (e) => evaluatePassword(e.target.value));
+// --- Cek kebocoran password via Have I Been Pwned (k-anonymity) ---
+const breachBox = document.getElementById('breachBox');
+let breachDebounce = null;
+
+async function sha1Hex(text) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(text);
+  const hashBuffer = await crypto.subtle.digest('SHA-1', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+}
+
+async function checkBreach(pwd) {
+  if (!pwd || pwd.length < 3) {
+    breachBox.className = 'breach-box';
+    breachBox.textContent = '';
+    return;
+  }
+
+  breachBox.className = 'breach-box show checking';
+  breachBox.textContent = '⏳ Mengecek riwayat kebocoran...';
+
+  try {
+    const hash = await sha1Hex(pwd);
+    const prefix = hash.slice(0, 5);
+    const suffix = hash.slice(5);
+
+    const res = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`);
+    if (!res.ok) throw new Error('Gagal menghubungi server');
+
+    const text = await res.text();
+    const lines = text.split('\n');
+    let count = 0;
+    for (const line of lines) {
+      const [lineSuffix, lineCount] = line.trim().split(':');
+      if (lineSuffix === suffix) {
+        count = parseInt(lineCount, 10);
+        break;
+      }
+    }
+
+    if (count > 0) {
+      breachBox.className = 'breach-box show leaked';
+      breachBox.textContent = `⚠️ Password ini pernah bocor ${count.toLocaleString('id-ID')}x dalam kebocoran data. Jangan dipakai!`;
+    } else {
+      breachBox.className = 'breach-box show safe';
+      breachBox.textContent = '✅ Tidak ditemukan dalam data kebocoran yang diketahui.';
+    }
+  } catch (err) {
+    breachBox.className = 'breach-box show error';
+    breachBox.textContent = '⚠️ Tidak bisa mengecek saat ini (masalah koneksi).';
+  }
+}
+
+pwdInput.addEventListener('input', (e) => {
+  evaluatePassword(e.target.value);
+  clearTimeout(breachDebounce);
+  breachDebounce = setTimeout(() => checkBreach(e.target.value), 600);
+});
 evaluatePassword('');
+
+// --- Generator Password ---
+const genOutput = document.getElementById('genOutput');
+const genBtn = document.getElementById('genBtn');
+const copyBtn = document.getElementById('copyBtn');
+const genLength = document.getElementById('genLength');
+const genLengthValue = document.getElementById('genLengthValue');
+const optUpper = document.getElementById('optUpper');
+const optLower = document.getElementById('optLower');
+const optNumber = document.getElementById('optNumber');
+const optSymbol = document.getElementById('optSymbol');
+
+const CHARS = {
+  upper: 'ABCDEFGHJKLMNPQRSTUVWXYZ',
+  lower: 'abcdefghijkmnpqrstuvwxyz',
+  number: '23456789',
+  symbol: '!@#$%^&*()-_=+[]{}'
+};
+
+genLength.addEventListener('input', () => {
+  genLengthValue.textContent = genLength.value;
+});
+
+function generatePassword() {
+  const pools = [];
+  if (optUpper.checked) pools.push(CHARS.upper);
+  if (optLower.checked) pools.push(CHARS.lower);
+  if (optNumber.checked) pools.push(CHARS.number);
+  if (optSymbol.checked) pools.push(CHARS.symbol);
+
+  if (pools.length === 0) {
+    genOutput.value = '';
+    genOutput.placeholder = 'Pilih minimal 1 jenis karakter!';
+    return;
+  }
+
+  const length = parseInt(genLength.value, 10);
+  const allChars = pools.join('');
+  const randomValues = new Uint32Array(length);
+  crypto.getRandomValues(randomValues);
+
+  let result = [];
+  // Pastikan minimal 1 karakter dari tiap kategori yang dipilih
+  pools.forEach((pool, i) => {
+    const r = new Uint32Array(1);
+    crypto.getRandomValues(r);
+    result.push(pool[r[0] % pool.length]);
+  });
+
+  for (let i = result.length; i < length; i++) {
+    result.push(allChars[randomValues[i] % allChars.length]);
+  }
+
+  // Acak urutan (Fisher-Yates)
+  for (let i = result.length - 1; i > 0; i--) {
+    const r = new Uint32Array(1);
+    crypto.getRandomValues(r);
+    const j = r[0] % (i + 1);
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+
+  genOutput.value = result.slice(0, length).join('');
+}
+
+genBtn.addEventListener('click', generatePassword);
+
+copyBtn.addEventListener('click', async () => {
+  if (!genOutput.value) return;
+  try {
+    await navigator.clipboard.writeText(genOutput.value);
+    copyBtn.textContent = '✅';
+    setTimeout(() => { copyBtn.textContent = '📋'; }, 1500);
+  } catch (err) {
+    genOutput.select();
+    document.execCommand('copy');
+  }
+});
 </script>
 
 </body>
