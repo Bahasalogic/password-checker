@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pengecek Kekuatan Password</title>
+<meta name="description" content="Cek seberapa kuat password kamu secara instan, langsung di browser. Tidak ada data yang dikirim ke server mana pun.">
+<meta name="author" content="bahasalogic">
+
+<!-- Open Graph / Social sharing -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Pengecek Kekuatan Password">
+<meta property="og:description" content="Cek seberapa kuat password kamu secara instan, langsung di browser. Aman & privat, tanpa server.">
+<meta property="og:url" content="https://bahasalogic.github.io/password-checker/">
+<meta property="og:image" content="https://bahasalogic.github.io/password-checker/og-image.png">
+
+<!-- Twitter card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Pengecek Kekuatan Password">
+<meta name="twitter:description" content="Cek seberapa kuat password kamu secara instan, langsung di browser.">
+
+<!-- Favicon (inline SVG, tidak perlu file terpisah) -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔒</text></svg>">
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .card {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 32px;
+    width: 100%;
+    max-width: 440px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  h1 {
+    font-size: 1.4rem;
+    color: #0f172a;
+    margin-bottom: 6px;
+  }
+  .subtitle {
+    color: #64748b;
+    font-size: 0.9rem;
+    margin-bottom: 24px;
+  }
+  .input-wrap {
+    position: relative;
+    margin-bottom: 20px;
+  }
+  input[type="password"], input[type="text"] {
+    width: 100%;
+    padding: 14px 46px 14px 14px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input:focus {
+    border-color: #6366f1;
+  }
+  .toggle-btn {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    color: #64748b;
+  }
+  .bar-track {
+    height: 10px;
+    background: #e2e8f0;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+  .bar-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 6px;
+    transition: width 0.35s ease, background 0.35s ease;
+  }
+  .label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .strength-label {
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
+  .crack-time {
+    font-size: 0.8rem;
+    color: #64748b;
+  }
+  .criteria {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .criteria-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: #94a3b8;
+    transition: color 0.2s;
+  }
+  .criteria-item.met {
+    color: #16a34a;
+  }
+  .criteria-item .icon {
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    font-size: 0.7rem;
+    flex-shrink: 0;
+  }
+  .note {
+    margin-top: 18px;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    line-height: 1.4;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 12px;
+  }
+  .footer-credit {
+    margin-top: 16px;
+    text-align: center;
+    font-size: 0.75rem;
+    color: #94a3b8;
+  }
+  .footer-credit a {
+    color: #6366f1;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .footer-credit a:hover {
+    text-decoration: underline;
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>🔒 Pengecek Kekuatan Password</h1>
+  <p class="subtitle">Semua perhitungan dilakukan di browser Anda — password tidak dikirim ke mana pun.</p>
+
+  <div class="input-wrap">
+    <input type="password" id="pwd" placeholder="Ketik password di sini..." autocomplete="new-password">
+    <button class="toggle-btn" id="toggleBtn" type="button">👁️</button>
+  </div>
+
+  <div class="bar-track">
+    <div class="bar-fill" id="barFill"></div>
+  </div>
+
+  <div class="label-row">
+    <span class="strength-label" id="strengthLabel">Belum ada input</span>
+    <span class="crack-time" id="crackTime"></span>
+  </div>
+
+  <div class="criteria">
+    <div class="criteria-item" id="c-length"><span class="icon">✓</span> Minimal 8 karakter</div>
+    <div class="criteria-item" id="c-upper"><span class="icon">✓</span> Ada huruf besar (A-Z)</div>
+    <div class="criteria-item" id="c-lower"><span class="icon">✓</span> Ada huruf kecil (a-z)</div>
+    <div class="criteria-item" id="c-number"><span class="icon">✓</span> Ada angka (0-9)</div>
+    <div class="criteria-item" id="c-symbol"><span class="icon">✓</span> Ada simbol (!@#$%...)</div>
+    <div class="criteria-item" id="c-common"><span class="icon">✓</span> Bukan password umum</div>
+  </div>
+
+  <p class="note">Estimasi waktu bobol dihitung secara kasar berdasarkan kombinasi karakter yang digunakan dan asumsi kecepatan tebak offline modern. Ini hanya perkiraan, bukan jaminan keamanan.</p>
+
+  <div class="footer-credit">
+    Dibuat oleh <a href="https://github.com/bahasalogic" target="_blank" rel="noopener">@bahasalogic</a>
+  </div>
+</div>
+
+<script>
+const pwdInput = document.getElementById('pwd');
+const barFill = document.getElementById('barFill');
+const strengthLabel = document.getElementById('strengthLabel');
+const crackTime = document.getElementById('crackTime');
+const toggleBtn = document.getElementById('toggleBtn');
+
+const commonPasswords = [
+  'password','123456','123456789','qwerty','12345678','111111','1234567',
+  'password1','12345','1234567890','admin','letmein','welcome','monkey',
+  'iloveyou','abc123','000000','password123','qwerty123','1q2w3e4r'
+];
+
+toggleBtn.addEventListener('click', () => {
+  const isPwd = pwdInput.type === 'password';
+  pwdInput.type = isPwd ? 'text' : 'password';
+  toggleBtn.textContent = isPwd ? '🙈' : '👁️';
+});
+
+function setCriterion(id, met) {
+  const el = document.getElementById(id);
+  el.classList.toggle('met', met);
+  el.querySelector('.icon').textContent = met ? '✓' : '✕';
+}
+
+function formatCrackTime(seconds) {
+  if (seconds < 1) return 'Instan';
+  const units = [
+    ['abad', 100 * 365 * 24 * 3600],
+    ['tahun', 365 * 24 * 3600],
+    ['bulan', 30 * 24 * 3600],
+    ['hari', 24 * 3600],
+    ['jam', 3600],
+    ['menit', 60],
+    ['detik', 1]
+  ];
+  for (const [name, unitSeconds] of units) {
+    const value = seconds / unitSeconds;
+    if (value >= 1) {
+      const rounded = value >= 100 ? Math.round(value) : Math.round(value * 10) / 10;
+      return `± ${rounded.toLocaleString('id-ID')} ${name}`;
+    }
+  }
+  return 'Instan';
+}
+
+function evaluatePassword(pwd) {
+  const hasLength = pwd.length >= 8;
+  const hasUpper = /[A-Z]/.test(pwd);
+  const hasLower = /[a-z]/.test(pwd);
+  const hasNumber = /[0-9]/.test(pwd);
+  const hasSymbol = /[^A-Za-z0-9]/.test(pwd);
+  const isCommon = commonPasswords.includes(pwd.toLowerCase());
+  const notCommon = !isCommon && pwd.length > 0;
+
+  setCriterion('c-length', hasLength);
+  setCriterion('c-upper', hasUpper);
+  setCriterion('c-lower', hasLower);
+  setCriterion('c-number', hasNumber);
+  setCriterion('c-symbol', hasSymbol);
+  setCriterion('c-common', notCommon);
+
+  if (pwd.length === 0) {
+    barFill.style.width = '0%';
+    barFill.style.background = '#e2e8f0';
+    strengthLabel.textContent = 'Belum ada input';
+    strengthLabel.style.color = '#94a3b8';
+    crackTime.textContent = '';
+    return;
+  }
+
+  // Estimasi ukuran karakter set (entropy dasar)
+  let charsetSize = 0;
+  if (hasLower) charsetSize += 26;
+  if (hasUpper) charsetSize += 26;
+  if (hasNumber) charsetSize += 10;
+  if (hasSymbol) charsetSize += 32;
+  if (charsetSize === 0) charsetSize = 1;
+
+  const entropyBits = pwd.length * Math.log2(charsetSize);
+  const guessesNeeded = Math.pow(2, entropyBits) / 2;
+  const guessesPerSecond = 10_000_000_000; // asumsi serangan offline modern (GPU)
+  let estSeconds = guessesNeeded / guessesPerSecond;
+
+  if (isCommon) estSeconds = 0; // password umum langsung dianggap instan bobol
+
+  // Skor gabungan 0-100
+  let score = 0;
+  if (hasLength) score += 20;
+  if (pwd.length >= 12) score += 10;
+  if (hasUpper) score += 15;
+  if (hasLower) score += 15;
+  if (hasNumber) score += 15;
+  if (hasSymbol) score += 15;
+  if (notCommon) score += 10;
+  if (isCommon) score = Math.min(score, 10);
+
+  score = Math.min(score, 100);
+
+  let level, color;
+  if (score < 30) { level = 'Sangat Lemah'; color = '#dc2626'; }
+  else if (score < 50) { level = 'Lemah'; color = '#f97316'; }
+  else if (score < 70) { level = 'Cukup'; color = '#eab308'; }
+  else if (score < 90) { level = 'Kuat'; color = '#22c55e'; }
+  else { level = 'Sangat Kuat'; color = '#16a34a'; }
+
+  barFill.style.width = score + '%';
+  barFill.style.background = color;
+  strengthLabel.textContent = level;
+  strengthLabel.style.color = color;
+  crackTime.textContent = 'Waktu bobol: ' + formatCrackTime(estSeconds);
+}
+
+pwdInput.addEventListener('input', (e) => evaluatePassword(e.target.value));
+evaluatePassword('');
+</script>
+
+</body>
+</html>
